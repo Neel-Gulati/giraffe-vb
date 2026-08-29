@@ -5,10 +5,10 @@
 <title>Giraffe Volleyball 2016 Championship — 2P</title>
 <style>
   :root{
-    --sky-top:#FFD97A;
-    --sky-bottom:#FF9F5A;
-    --ground:#C9A24B;
-    --ground-dark:#A67F35;
+    --sky-top:#4FB4E8;
+    --sky-bottom:#BFEFEA;
+    --ground:#F3DDA6;
+    --ground-dark:#E0BD7E;
     --p1:#F2B441;
     --p1-spot:#8B5A2B;
     --p2:#E8865A;
@@ -18,42 +18,25 @@
     --cream:#FFF3DC;
   }
   html,body{
-    margin:0; padding:0; height:100%;
+    margin:0; padding:0; width:100%; height:100%;
     background:#1c130b;
     font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
     color:var(--ink);
-    display:flex; align-items:center; justify-content:center;
-    flex-direction:column;
     user-select:none;
+    overflow:hidden;
   }
   #wrap{
-    display:flex; flex-direction:column; align-items:center;
-    gap:10px;
-    padding:18px;
-  }
-  h1{
-    font-size:22px;
-    letter-spacing:2px;
-    margin:0;
-    color:var(--cream);
-    text-transform:uppercase;
-    text-shadow: 2px 2px 0 #7a3e1d;
-  }
-  .sub{
-    color:#e8c99a;
-    font-size:12px;
-    letter-spacing:1px;
-    margin-top:-6px;
+    position:fixed;
+    top:50%; left:50%;
+    transform-origin:center center;
   }
   #stage{
     position:relative;
-    border-radius:14px;
     overflow:hidden;
-    box-shadow: 0 0 0 6px #4a2f18, 0 12px 30px rgba(0,0,0,0.5);
   }
   canvas{ display:block; background:var(--sky-top); }
   #hud{
-    position:absolute; top:16px; left:0; right:0;
+    position:absolute; top:118px; left:0; right:0;
     display:flex; justify-content:space-between;
     padding:0 60px;
     pointer-events:none;
@@ -64,7 +47,7 @@
   }
   .corner-controls{
     position:absolute;
-    top:78px;
+    top:16px;
     font-size:13px;
     line-height:1.6;
     color:var(--cream);
@@ -111,10 +94,8 @@
 </head>
 <body>
 <div id="wrap">
-  <h1>🦒 Giraffe Volleyball: 2016 Championship 🦒</h1>
-  <div class="sub">TWO-PLAYER EDITION — first to 5 wins the neck-off</div>
   <div id="stage">
-    <canvas id="c" width="1100" height="780"></canvas>
+    <canvas id="c" width="1400" height="780"></canvas>
     <div id="hud"><div id="s1">0</div><div id="s2">0</div></div>
     <div class="corner-controls left">
       <b>Player 1 — Tan</b>
@@ -139,11 +120,31 @@
 </div>
 
 <script>
+
+// Fix the game (unscaled, native 1400x780) to the center of the viewport and
+// scale it down just enough to fit, however small or large the window is —
+// using position:fixed means it can never cause the page to need scrolling.
+(function fitToScreen(){
+  const wrap = document.getElementById('wrap');
+  const originalW = 1400, originalH = 780;
+  function apply(){
+    const margin = 24;
+    const availW = window.innerWidth - margin;
+    const availH = window.innerHeight - margin;
+    const scale = Math.max(0.1, Math.min(1, availW/originalW, availH/originalH));
+    wrap.style.transform = `translate(-50%, -50%) scale(${scale})`;
+  }
+  window.addEventListener('resize', apply);
+  window.addEventListener('orientationchange', apply);
+  apply();
+  setTimeout(apply, 200);
+})();
+
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 const W = canvas.width, H = canvas.height;
 const GROUND_Y = 640;
-const NET_X = 550, NET_H = 190, NET_W = 12;
+const NET_X = W/2, NET_H = 190, NET_W = 12;
 const BODY_HALF_W = 46; // half-width of the giraffe's torso (wider = chunkier giraffe)
 const WIN_SCORE = 5;
 
@@ -172,8 +173,8 @@ function makeGiraffe(x, color, spot, facing){
 
 let animTime = 0;
 
-let p1 = makeGiraffe(220, getVar('--p1'), getVar('--p1-spot'), 1);
-let p2 = makeGiraffe(880, getVar('--p2'), getVar('--p2-spot'), -1);
+let p1 = makeGiraffe(280, getVar('--p1'), getVar('--p1-spot'), 1);
+let p2 = makeGiraffe(W-280, getVar('--p2'), getVar('--p2-spot'), -1);
 p1.minX = 20; p1.maxX = NET_X - (BODY_HALF_W + 6);
 p2.minX = NET_X + (BODY_HALF_W + 6); p2.maxX = W - 20;
 
@@ -182,14 +183,14 @@ function getVar(name){
 }
 
 const ball = {
-  x:550, y:220, vx:0, vy:0, r:26,
+  x:700, y:220, vx:0, vy:0, r:26,
   trail:[]
 };
 
 const MOVE_SPEED = 6;
 const BALL_GRAVITY = 0.32;
 const NET_TOP_Y = GROUND_Y - NET_H;
-const LEG_BASE = 24, LEG_TALL = 280, LEG_CROUCH = 3;
+const LEG_BASE = 24, LEG_TALL = 310, LEG_CROUCH = 3;
 
 let servingSide = 1; // 1 = p1 serves, 2 = p2 serves
 let paused = true;
@@ -205,8 +206,8 @@ function resetBall(side){
 }
 
 function resetPositions(){
-  p1.x = 220; p1.vx = 0; p1.legLen = LEG_BASE; p1.stretch = 0; p1.crouch = 0;
-  p2.x = 880; p2.vx = 0; p2.legLen = LEG_BASE; p2.stretch = 0; p2.crouch = 0;
+  p1.x = 280; p1.vx = 0; p1.legLen = LEG_BASE; p1.stretch = 0; p1.crouch = 0;
+  p2.x = W-280; p2.vx = 0; p2.legLen = LEG_BASE; p2.stretch = 0; p2.crouch = 0;
 }
 
 // left/right move the giraffe; legUp/legDown control overall SIZE (legs, replacing
@@ -232,8 +233,11 @@ function updateGiraffe(g, left, right, legUp, legDown, neckUp, neckDown){
   g.crouch += (crouchTarget - g.crouch) * 0.2;
 
   // legs: overall giraffe size / height, on separate keys, pushed to extremes
-  const legTarget = legUpHeld ? LEG_TALL : (legDownHeld ? LEG_CROUCH : LEG_BASE);
-  g.legLen += (legTarget - g.legLen) * (legUpHeld ? 0.15 : (legDownHeld ? 0.24 : 0.19));
+  // legs stay wherever they're left — holding up/down grows or shrinks them,
+  // but releasing both keys freezes the current height instead of snapping
+  // back to neutral
+  const legTarget = legUpHeld ? LEG_TALL : (legDownHeld ? LEG_CROUCH : g.legLen);
+  g.legLen += (legTarget - g.legLen) * (legUpHeld ? 0.07 : (legDownHeld ? 0.08 : 0.19));
 
   // neck AND body both lengthen when stretching (very tall reach), and both
   // shrink when retracting
@@ -269,14 +273,72 @@ function circleRectHit(cx, cy, cr, rx, ry, rw, rh){
   return (dx*dx + dy*dy) < cr*cr;
 }
 
+// Push the ball back out of a rect along whichever side requires the LEAST
+// movement (left/right/top/bottom), and bounce velocity along that same axis.
+// This matters because a naive "always push sideways" resolution snaps the
+// ball through the object whenever it actually landed on TOP of it — which is
+// what was causing the ball to glitch through torsos and the net.
+function resolveCircleRect(rx, ry, rw, rh, restitution, minPush){
+  const expLeft = rx - ball.r, expRight = rx + rw + ball.r;
+  const expTop = ry - ball.r, expBottom = ry + rh + ball.r;
+  const penLeft = ball.x - expLeft;
+  const penRight = expRight - ball.x;
+  const penTop = ball.y - expTop;
+  const penBottom = expBottom - ball.y;
+  const minPen = Math.min(penLeft, penRight, penTop, penBottom);
+
+  if(minPen === penTop){
+    ball.y = expTop;
+    ball.vy = -Math.abs(ball.vy) * restitution - minPush;
+  } else if(minPen === penBottom){
+    ball.y = expBottom;
+    ball.vy = Math.abs(ball.vy) * restitution + minPush;
+  } else if(minPen === penLeft){
+    ball.x = expLeft;
+    ball.vx = -Math.abs(ball.vx) * restitution - minPush;
+  } else {
+    ball.x = expRight;
+    ball.vx = Math.abs(ball.vx) * restitution + minPush;
+  }
+}
+
 function updateBall(){
   ball.vy += BALL_GRAVITY;
-  ball.x += ball.vx;
-  ball.y += ball.vy;
+
+  // sub-step the movement so a fast-moving ball can't tunnel straight through
+  // thin things (the net, a giraffe's neck/body) in a single frame — each
+  // sub-step only advances a few pixels and re-checks every collision.
+  // Crucially, each sub-step recomputes its distance from the ball's CURRENT
+  // velocity, so if a collision flips vx/vy partway through the frame, the
+  // remaining sub-steps immediately follow the new direction instead of
+  // continuing to travel along the old (pre-bounce) path.
+  const speed = Math.hypot(ball.vx, ball.vy);
+  const maxStep = 8;
+  const steps = Math.min(120, Math.max(1, Math.ceil(speed / maxStep)));
+  const MAX_SPEED = 55; // hard velocity clamp so repeated bounces can never compound into a runaway/glitchy speed
+
+  for(let s = 0; s < steps; s++){
+    ball.x += ball.vx / steps;
+    ball.y += ball.vy / steps;
+    resolveBallCollisions();
+    const spd = Math.hypot(ball.vx, ball.vy);
+    if(spd > MAX_SPEED){ const k = MAX_SPEED/spd; ball.vx *= k; ball.vy *= k; }
+    // once it's reached the ground this frame, stop — no point simulating
+    // further sub-steps past the point that ends the rally
+    if(ball.y + ball.r >= GROUND_Y) break;
+  }
 
   ball.trail.push({x:ball.x, y:ball.y});
   if(ball.trail.length > 10) ball.trail.shift();
 
+  // ground = point
+  if(ball.y + ball.r >= GROUND_Y && pointCooldown <= 0){
+    const winner = ball.x < NET_X ? 2 : 1;
+    awardPoint(winner);
+  }
+}
+
+function resolveBallCollisions(){
   // walls
   if(ball.x - ball.r < 0){ ball.x = ball.r; ball.vx *= -0.3; }
   if(ball.x + ball.r > W){ ball.x = W - ball.r; ball.vx *= -0.3; }
@@ -285,20 +347,8 @@ function updateBall(){
 
   // net collision
   const netLeft = NET_X - NET_W/2, netRight = NET_X + NET_W/2;
-  if(ball.y + ball.r > NET_TOP_Y && circleRectHit(ball.x, ball.y, ball.r, netLeft, NET_TOP_Y, NET_W, NET_H)){
-    // hit the net body — bounce back on whichever side it came from
-    if(ball.x < NET_X){
-      ball.x = netLeft - ball.r;
-      ball.vx = -Math.abs(ball.vx) * 0.18 - 0.3;
-    } else {
-      ball.x = netRight + ball.r;
-      ball.vx = Math.abs(ball.vx) * 0.18 + 0.3;
-    }
-  } else if(ball.y - ball.r < NET_TOP_Y + 6 && ball.y + ball.r > NET_TOP_Y - 4 &&
-            ball.x > netLeft - ball.r && ball.x < netRight + ball.r && ball.vy > 0){
-    // clipped the top of the net
-    ball.y = NET_TOP_Y - ball.r;
-    ball.vy *= -0.12;
+  if(circleRectHit(ball.x, ball.y, ball.r, netLeft, NET_TOP_Y, NET_W, NET_H)){
+    resolveCircleRect(netLeft, NET_TOP_Y, NET_W, NET_H, 0.18, 0.3);
   }
 
   // giraffe collisions (body ellipse-ish rect + head circle)
@@ -312,30 +362,22 @@ function updateBall(){
       const nx = dx/(dist||1), ny = dy/(dist||1);
       ball.x = head.x + nx*(ball.r+hitR);
       ball.y = head.y + ny*(ball.r+hitR);
-      const power = 8.5 + Math.min(4, Math.abs(g.vx)*0.6);
-      ball.vx = nx*power + g.vx*0.5;
-      ball.vy = -Math.abs(ny*power) - 6;
+      const power = 8.4 + Math.min(3.5, Math.abs(g.vx)*0.55);
+      ball.vx = nx*power + g.vx*0.45;
+      ball.vy = -Math.abs(ny*power) - 5;
       spawnPuff(head.x, head.y);
       rallyOn = true;
     } else {
       // body block
       const hipY = GROUND_Y - g.legLen;
-      const bodyRect = {rx: g.x - BODY_HALF_W, ry: hipY - (g.curBodyH || g.bodyH), rw: BODY_HALF_W*2, rh: (g.curBodyH || g.bodyH)};
-      if(circleRectHit(ball.x, ball.y, ball.r, bodyRect.rx, bodyRect.ry, bodyRect.rw, bodyRect.rh)){
-        const cx = bodyRect.rx + bodyRect.rw/2;
-        if(ball.x < cx){ ball.vx = -Math.abs(ball.vx)*0.35 - 0.5; ball.x = bodyRect.rx - ball.r; }
-        else { ball.vx = Math.abs(ball.vx)*0.35 + 0.5; ball.x = bodyRect.rx + bodyRect.rw + ball.r; }
-        ball.vy = -Math.abs(ball.vy) * 0.25 - 0.5;
+      const bh = (g.curBodyH || g.bodyH);
+      const rx = g.x - BODY_HALF_W, ry = hipY - bh, rw = BODY_HALF_W*2, rh = bh;
+      if(circleRectHit(ball.x, ball.y, ball.r, rx, ry, rw, rh)){
+        resolveCircleRect(rx, ry, rw, rh, 0.35, 0.5);
         rallyOn = true;
       }
     }
   });
-
-  // ground = point
-  if(ball.y + ball.r >= GROUND_Y && pointCooldown <= 0){
-    const winner = ball.x < NET_X ? 2 : 1;
-    awardPoint(winner);
-  }
 }
 
 let puffs = [];
@@ -399,47 +441,80 @@ document.getElementById('startBtn').addEventListener('click', () => {
 
 // ---------- Drawing ----------
 function drawBackground(){
-  const grad = ctx.createLinearGradient(0,0,0,GROUND_Y);
-  grad.addColorStop(0, '#FFD97A');
-  grad.addColorStop(1, '#FF9F5A');
+  const oceanH = 90; // band of sea between the sky and the sand
+  const oceanTop = GROUND_Y - oceanH;
+
+  // sky
+  const grad = ctx.createLinearGradient(0,0,0,oceanTop);
+  grad.addColorStop(0, '#4FB4E8');
+  grad.addColorStop(1, '#AEE5F0');
   ctx.fillStyle = grad;
-  ctx.fillRect(0,0,W,GROUND_Y);
+  ctx.fillRect(0,0,W,oceanTop);
 
   // sun
-  ctx.fillStyle = 'rgba(255,255,255,0.55)';
-  ctx.beginPath(); ctx.arc(W-140, 70, 48, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,250,210,0.85)';
+  ctx.beginPath(); ctx.arc(W-160, 90, 55, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.beginPath(); ctx.arc(W-160, 90, 68, 0, Math.PI*2); ctx.fill();
 
   // clouds
-  ctx.fillStyle = 'rgba(255,255,255,0.35)';
-  drawCloud(150, 80, 1.1);
-  drawCloud(560, 55, 0.85);
-  drawCloud(920, 100, 0.75);
+  ctx.fillStyle = 'rgba(255,255,255,0.75)';
+  drawCloud(150, 90, 1.1);
+  drawCloud(520, 60, 0.85);
+  drawCloud(880, 110, 0.75);
+  drawCloud(1230, 70, 0.9);
 
-  // distant acacia silhouettes
-  ctx.fillStyle = 'rgba(90,50,20,0.25)';
-  drawAcacia(80, GROUND_Y-10, 1.05);
-  drawAcacia(W-90, GROUND_Y-6, 1.3);
+  // distant palm trees along the shore
+  drawPalm(80, oceanTop+4, 1.05);
+  drawPalm(W-90, oceanTop, 1.3);
 
-  // ground
+  // ocean band with a couple of soft wave lines
+  const seaGrad = ctx.createLinearGradient(0,oceanTop,0,GROUND_Y);
+  seaGrad.addColorStop(0, '#2C9BC9');
+  seaGrad.addColorStop(1, '#7FD8C8');
+  ctx.fillStyle = seaGrad;
+  ctx.fillRect(0, oceanTop, W, oceanH);
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+  ctx.lineWidth = 2;
+  for(let w=0; w<3; w++){
+    const wy = oceanTop + 20 + w*22;
+    ctx.beginPath();
+    for(let x=0; x<=W; x+=40){
+      const yy = wy + Math.sin(x*0.02 + w*1.3)*4;
+      if(x===0) ctx.moveTo(x,yy); else ctx.lineTo(x,yy);
+    }
+    ctx.stroke();
+  }
+  // foam line where the sea meets the sand
+  ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  for(let x=0; x<=W; x+=30){
+    const yy = GROUND_Y + Math.sin(x*0.05)*3;
+    if(x===0) ctx.moveTo(x,yy); else ctx.lineTo(x,yy);
+  }
+  ctx.stroke();
+
+  // sand
   const gg = ctx.createLinearGradient(0,GROUND_Y,0,H);
-  gg.addColorStop(0, '#C9A24B');
-  gg.addColorStop(1, '#A67F35');
+  gg.addColorStop(0, '#F3DDA6');
+  gg.addColorStop(1, '#E0BD7E');
   ctx.fillStyle = gg;
   ctx.fillRect(0, GROUND_Y, W, H-GROUND_Y);
 
-  // ground texture lines
-  ctx.strokeStyle = 'rgba(90,60,20,0.25)';
-  ctx.lineWidth = 2;
-  const segs = Math.ceil(W/110)+2;
-  for(let i=0;i<segs;i++){
-    ctx.beginPath();
-    ctx.moveTo(i*110 - 20, GROUND_Y+6);
-    ctx.lineTo(i*110 + 40, H);
-    ctx.stroke();
+  // scattered sand texture (little dots, like grain/shell flecks)
+  ctx.fillStyle = 'rgba(150,110,60,0.25)';
+  const dotCols = Math.ceil(W/34);
+  for(let i=0;i<dotCols;i++){
+    for(let j=0;j<4;j++){
+      const dx2 = (i*34 + (j%2)*17) % W;
+      const dy2 = GROUND_Y + 14 + j*22 + (i%3)*4;
+      if(dy2 < H-4) { ctx.beginPath(); ctx.arc(dx2, dy2, 1.6, 0, Math.PI*2); ctx.fill(); }
+    }
   }
 
   // center line
-  ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
   ctx.setLineDash([6,6]);
   ctx.beginPath(); ctx.moveTo(NET_X,GROUND_Y); ctx.lineTo(NET_X,H); ctx.stroke();
   ctx.setLineDash([]);
@@ -452,14 +527,31 @@ function drawCloud(x,y,s){
   ctx.ellipse(x-20*s,y+5*s,18*s,11*s,0,0,Math.PI*2);
   ctx.fill();
 }
-function drawAcacia(x,y,s){
+function drawPalm(x,y,s){
   ctx.save();
   ctx.translate(x,y);
   ctx.scale(s,s);
-  ctx.fillRect(-3,-40,6,40);
+  // curved trunk
+  ctx.strokeStyle = 'rgba(90,60,30,0.55)';
+  ctx.lineWidth = 7;
+  ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.ellipse(0,-55,45,14,0,0,Math.PI*2);
-  ctx.fill();
+  ctx.moveTo(0,0);
+  ctx.quadraticCurveTo(-8,-30,4,-58);
+  ctx.stroke();
+  // fronds
+  ctx.fillStyle = 'rgba(40,110,70,0.5)';
+  const tipX = 4, tipY = -58;
+  for(let i=0;i<6;i++){
+    const ang = -Math.PI/2 + (i-2.5)*0.42;
+    const lx = tipX + Math.cos(ang)*38;
+    const ly = tipY + Math.sin(ang)*24 - 6;
+    ctx.beginPath();
+    ctx.moveTo(tipX, tipY);
+    ctx.quadraticCurveTo(tipX + Math.cos(ang)*20, tipY + Math.sin(ang)*12 - 10, lx, ly);
+    ctx.quadraticCurveTo(tipX + Math.cos(ang)*20, tipY + Math.sin(ang)*12 + 4, tipX, tipY);
+    ctx.fill();
+  }
   ctx.restore();
 }
 
@@ -488,14 +580,11 @@ function drawGiraffe(g){
   const hipY = -legLen; // local y of hip/shoulder base (0 = ground)
   const f = g.facing;
 
-  // silliness factor: the taller the legs stretch, the wobblier everything gets
-  const heightFactor = Math.max(0, Math.min(1, (legLen - LEG_BASE) / (LEG_TALL - LEG_BASE)));
-  const sway = Math.sin(animTime*1.3 + g.wobblePhase) * heightFactor * 9;
-  const wiggle = Math.sin(animTime*4 + g.wobblePhase) * heightFactor * 8;
+  // legs stay steady at any height — no rocking or wobbling, even fully extended
   const tongueWiggle = Math.sin(animTime*5 + g.wobblePhase*1.7);
 
   ctx.save();
-  ctx.translate(g.x + sway, GROUND_Y);
+  ctx.translate(g.x, GROUND_Y);
 
   // shadow — shrinks a little the taller the legs stand
   ctx.fillStyle = 'rgba(0,0,0,0.25)';
@@ -504,23 +593,22 @@ function drawGiraffe(g){
   ctx.ellipse(0, 4, 32*shrink, 8*shrink, 0, 0, Math.PI*2);
   ctx.fill();
 
-  // legs — the actual height control, drawn a little bendy/springy for silliness
-  // the taller they get, the more they wobble like wet noodles
+  // legs — the actual height control, straight and steady at any height
   ctx.strokeStyle = g.color;
   ctx.lineWidth = 9;
   ctx.lineCap = 'round';
   const legSwing = Math.sin(g.legPhase) * 8;
   const legBaseL = -BODY_HALF_W*0.45, legBaseR = BODY_HALF_W*0.45;
-  const footL = legBaseL + legSwing*0.5 + wiggle;
-  const footR = legBaseR - legSwing*0.5 - wiggle;
+  const footL = legBaseL + legSwing*0.5;
+  const footR = legBaseR - legSwing*0.5;
   const midY = hipY*0.55;
   ctx.beginPath();
   ctx.moveTo(legBaseL, hipY + 6);
-  ctx.quadraticCurveTo(legBaseL + wiggle*1.6, midY, footL, 0);
+  ctx.quadraticCurveTo(legBaseL, midY, footL, 0);
   ctx.stroke();
   ctx.beginPath();
   ctx.moveTo(legBaseR, hipY + 6);
-  ctx.quadraticCurveTo(legBaseR - wiggle*1.6, midY, footR, 0);
+  ctx.quadraticCurveTo(legBaseR, midY, footR, 0);
   ctx.stroke();
   // little hooves
   ctx.fillStyle = g.spot;
@@ -588,7 +676,7 @@ function drawGiraffe(g){
   // ossicones (horns) — give them a little jiggle too
   ctx.strokeStyle = g.color;
   ctx.lineWidth = 3;
-  const hornWiggle = wiggle*0.3;
+  const hornWiggle = tongueWiggle*1.2;
   ctx.beginPath();
   ctx.moveTo(nx - f*2, ny - 9); ctx.lineTo(nx - f*2 + hornWiggle, ny - 16);
   ctx.moveTo(nx + f*6, ny - 9); ctx.lineTo(nx + f*6 + hornWiggle, ny - 16);
